@@ -1,9 +1,162 @@
-import example.pepita
+import example.*
 
-describe "group of tests for pepita" {
+const jugadorTitular = new Jugador(antiguedad = 40)
+const jugadorEstrella = new Jugador(antiguedad = 50, cansancio = 20)
+const jugadorNovato = new Jugador(antiguedad = 2)
+describe "Partidas" {
 
-  test "pepita has initial energy" {
-    assert.equals(100, pepita.energy())
+  const partidaContraFaker = new Partida(rojo = jugadorTitular, azul = faker)
+  const partidaDeEstrellaContraFaker = new Partida(rojo = jugadorEstrella, azul = faker)
+  const partidaConNovato = new Partida(rojo = jugadorTitular, azul = jugadorNovato)
+
+  test "Jugar una partida hace que jueguen ambos participantes" {
+    partidaContraFaker.jugar()
+    assert.equals(10, jugadorTitular.habilidad())
+    assert.equals(70, faker.habilidad())
   }
 
+  test "No se puede saber el ganador de una partida si no se jugo" {
+    assert.throwsExceptionWithMessage("Aún no se jugó la partida", { partidaContraFaker.quienGano() })
+  }
+
+  test "La partida la gana el participante con más habilidad luego de jugarla" {
+    partidaDeEstrellaContraFaker.jugar()
+    assert.equals(faker, partidaDeEstrellaContraFaker.quienGano())
+  }
+
+  test "No se puede jugar una partida si alguno de los participantes no puede jugar" {
+    assert.throwsExceptionWithMessage(
+      "El jugador debe ser titular y no estar cansado para jugar",
+      { partidaConNovato.jugar() }
+    )
+  }
+
+}
+
+describe "Jugadores" {
+
+  const jugadorConTresAnios = new Jugador(antiguedad = 3)
+  const jugadorAgotado = new Jugador(antiguedad = 40, cansancio = 120)
+  const jugadorAlLimite = new Jugador(antiguedad = 40, cansancio = 100)
+  const jugadorDescansado = new Jugador(antiguedad = 40, cansancio = 5)
+
+  test "Un jugador es titular si tiene mas de 3 años de antiguedad" {
+    assert.that(jugadorTitular.esTitular())
+  }
+
+  test "Un jugador no es titular si tiene menos de 3 años de antiguedad" {
+    assert.notThat(jugadorNovato.esTitular())
+  }
+
+  test "Un jugador no es titular si tiene exactamente 3 años de antiguedad" {
+    assert.notThat(jugadorConTresAnios.esTitular())
+  }
+
+  test "Un jugador esta totalmente cansado si tiene mas de 100 de cansancio" {
+    assert.that(jugadorAgotado.estaTotalmenteCansado())
+  }
+
+  test "Un jugador no esta totalmente cansado si tiene menos de 100 de cansancio" {
+    assert.notThat(jugadorTitular.estaTotalmenteCansado())
+  }
+
+  test "Un jugador no esta totalmente cansado si tiene exactamente 100 de cansancio" {
+    assert.notThat(jugadorAlLimite.estaTotalmenteCansado())
+  }
+
+  test "La habilidad de un jugador es el doble de su antiguedad menos su cansancio" {
+    assert.equals(30, jugadorTitular.habilidad())
+  }
+
+  test "Tomar una bebida energizante reduce en 10 el cansancio" {
+    jugadorTitular.tomarBebidaEnergizante()
+    assert.equals(40, jugadorTitular.cansancio())
+  }
+
+  test "Tomar una bebida energizante no puede dejar el cansancio en negativo" {
+    jugadorDescansado.tomarBebidaEnergizante()
+    assert.equals(0, jugadorDescansado.cansancio())
+  }
+
+  test "Un jugador titular y no totalmente cansado puede jugar" {
+    assert.that(jugadorTitular.puedeJugar())
+  }
+
+  test "Un jugador que no es titular no puede jugar" {
+    assert.notThat(jugadorNovato.puedeJugar())
+  }
+
+  test "Un jugador totalmente cansado no puede jugar" {
+    assert.notThat(jugadorAgotado.puedeJugar())
+  }
+
+  test "Un jugador que puede jugar aumenta su cansancio en 20 al jugar" {
+    jugadorTitular.jugar()
+    assert.equals(70, jugadorTitular.cansancio())
+  }
+
+  test "No se puede jugar con un jugador que no sea titular" {
+    assert.throwsExceptionWithMessage(
+      "El jugador debe ser titular y no estar cansado para jugar",
+      { jugadorNovato.jugar() }
+    )
+  }
+
+  test "No se puede jugar con un jugador que este totalmente cansado" {
+    assert.throwsExceptionWithMessage(
+      "El jugador debe ser titular y no estar cansado para jugar",
+      { jugadorAgotado.jugar() }
+    )
+  }
+
+  test "Un jugador que no pudo jugar no aumenta su cansancio" {
+    assert.throwsException({ jugadorNovato.jugar() })
+    assert.equals(50, jugadorNovato.cansancio())
+  }
+}
+
+describe "Faker" {
+
+  test "Faker tilteado tiene 0 de habilidad" {
+    faker.tiltearse()
+    assert.equals(0, faker.habilidad())
+  }
+
+  test "Faker no tilteado tiene una habilidad acumulada" {
+    assert.equals(50, faker.habilidad())
+  }
+
+  test "Tomarse un tecito lo deja no tilteado" {
+    faker.tiltearse()
+    faker.tomarseUnTecito()
+    assert.notThat(faker.tilteado())
+  }
+
+  test "Jugar aumenta su habilidad en 20" {
+    faker.jugar()
+    assert.equals(70, faker.habilidad())
+  }
+}
+
+describe "Equipos" {
+
+  const equipoDeJugadores = new Equipo(integrantes = [jugadorTitular, jugadorEstrella])
+  const equipoConNovato = new Equipo(integrantes = [jugadorEstrella, jugadorNovato])
+
+  test "La habilidad de un equipo es la suma de la habilidad de sus integrantes" {
+    assert.equals(110, equipoDeJugadores.habilidad())
+  }
+
+  test "Jugar con un equipo hace que jueguen todos sus integrantes" {
+    equipoDeJugadores.jugar()
+    assert.equals(10, jugadorTitular.habilidad())
+    assert.equals(60, jugadorEstrella.habilidad())
+  }
+
+  test "Un equipo no puede jugar si alguno de sus integrantes no puede jugar" {
+    assert.throwsExceptionWithMessage(
+      "El jugador debe ser titular y no estar cansado para jugar",
+      { equipoConNovato.jugar() }
+    )
+  }
 }
